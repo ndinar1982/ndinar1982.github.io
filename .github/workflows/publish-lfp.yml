@@ -18,11 +18,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  publish:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout public deployment repository
         uses: actions/checkout@v4
@@ -37,9 +34,8 @@ jobs:
           BASE="https://family-budget-lfp.web.app"
           mkdir -p _site/app-parts
 
-          # Exactly 16 known production root assets, plus 32 JS-chunk text assets.
-          # This fetches only public front-end assets: no private GitHub source,
-          # server files, finances, credentials, or Google Sheets data.
+          # Only the 48 already-public production front-end assets.
+          # No source from the private repo, financial data, or credentials.
           paths=(
             index.html
             budget-app.js
@@ -72,32 +68,38 @@ jobs:
           test "$(wc -c < _site/budget.css)" -gt 70000
           test "$(wc -c < _site/pwa-bridge.js)" -gt 4500
 
-          # The Firebase origin's health banner says Firebase; keep the same
-          # version while making the Pages network verification unambiguous.
+          # Keep the app unchanged; only the host health banner differs.
           cat > _site/health.html <<'LFP_HEALTH'
           <!doctype html>
           <html lang="ru"><head><meta charset="utf-8"><title>ЛФП — GitHub Pages</title></head>
           <body><h1>GitHub Pages работает</h1><p>PWA v9.68 — статические файлы опубликованы.</p>
           <p>Finance API: unchanged (Google Apps Script). OAuth requires approved GitHub origin.</p></body></html>
           LFP_HEALTH
-
-          # Publish as plain static files, without Jekyll processing.
           touch _site/.nojekyll
-          echo "Verified 48 v9.68 static assets, ready for Pages."
+          echo "Verified 48 LFP v9.68 static assets."
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
           path: _site
 
-      - name: Deploy static LFP to GitHub Pages
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Allow GitHub Pages artifact metadata to settle
+        run: sleep 8
+
+      - name: Deploy LFP v9.68 to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
 
-      - name: Verify deployed GitHub Pages site
+      - name: Verify live GitHub Pages v9.68
         run: |
           set -euo pipefail
           curl --fail --location --silent --show-error --retry 5 --retry-delay 3 --max-time 60 https://ndinar1982.github.io/health.html | grep -q 'PWA v9.68'
           curl --fail --location --silent --show-error --retry 5 --retry-delay 3 --max-time 60 https://ndinar1982.github.io/index.html | grep -q 'v9.68 Firebase'
-          echo "The published GitHub Pages site serves v9.68."
-
+          echo "GitHub Pages serves LFP v9.68."
