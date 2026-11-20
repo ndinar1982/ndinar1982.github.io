@@ -1,0 +1,86 @@
+name: Publish LFP v9.68 frontend to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/publish-lfp.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: lfp-github-pages
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout public deployment repository
+        uses: actions/checkout@v4
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Download vetted static assets from existing Firebase production
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://family-budget-lfp.web.app"
+          mkdir -p _site/app-parts
+
+          # Exactly 16 known production root assets, plus 32 JS-chunk text assets.
+          # This fetches only public front-end assets: no private GitHub source,
+          # server files, finances, credentials, or Google Sheets data.
+          paths=(
+            index.html
+            budget-app.js
+            budget.css
+            config.js
+            pwa-bridge.js
+            session-bridge.js
+            sw.js
+            manifest.webmanifest
+            favicon-32.png
+            icon-192.png
+            icon-512.png
+            icon-maskable-512.png
+            apple-touch-icon.png
+            apple-touch-icon-180.png
+            google-check.html
+            health.html
+          )
+          for path in "${paths[@]}"; do
+            curl --fail --location --silent --show-error --retry 2 --connect-timeout 15 --max-time 90 "${BASE}/${path}" --output "_site/${path}"
+          done
+          for number in $(seq -w 1 32); do
+            curl --fail --location --silent --show-error --retry 2 --connect-timeout 15 --max-time 90 "${BASE}/app-parts/${number}.txt" --output "_site/app-parts/${number}.txt"
+          done
+
+          test "$(find _site -type f | wc -l)" -eq 48
+          grep -q 'v9.68 Firebase' _site/index.html
+          grep -q 'PWA v9.68' _site/health.html
+          test "$(wc -c < _site/budget-app.js)" -gt 250000
+          test "$(wc -c < _site/budget.css)" -gt 70000
+          test "$(wc -c < _site/pwa-bridge.js)" -gt 4500
+
+          # Publish as plain static files, without Jekyll processing.
+          touch _site/.nojekyll
+          echo "Verified 48 v9.68 static assets, ready for Pages."
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+      - name: Deploy static LFP to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
