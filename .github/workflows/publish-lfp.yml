@@ -72,6 +72,15 @@ jobs:
           test "$(wc -c < _site/budget.css)" -gt 70000
           test "$(wc -c < _site/pwa-bridge.js)" -gt 4500
 
+          # The Firebase origin's health banner says Firebase; keep the same
+          # version while making the Pages network verification unambiguous.
+          cat > _site/health.html <<'LFP_HEALTH'
+          <!doctype html>
+          <html lang="ru"><head><meta charset="utf-8"><title>ЛФП — GitHub Pages</title></head>
+          <body><h1>GitHub Pages работает</h1><p>PWA v9.68 — статические файлы опубликованы.</p>
+          <p>Finance API: unchanged (Google Apps Script). OAuth requires approved GitHub origin.</p></body></html>
+          LFP_HEALTH
+
           # Publish as plain static files, without Jekyll processing.
           touch _site/.nojekyll
           echo "Verified 48 v9.68 static assets, ready for Pages."
@@ -84,3 +93,11 @@ jobs:
       - name: Deploy static LFP to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Verify deployed GitHub Pages site
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error --retry 5 --retry-delay 3 --max-time 60 https://ndinar1982.github.io/health.html | grep -q 'PWA v9.68'
+          curl --fail --location --silent --show-error --retry 5 --retry-delay 3 --max-time 60 https://ndinar1982.github.io/index.html | grep -q 'v9.68 Firebase'
+          echo "The published GitHub Pages site serves v9.68."
+
