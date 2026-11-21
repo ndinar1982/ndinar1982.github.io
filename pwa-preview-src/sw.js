@@ -10,8 +10,8 @@ const PARTS = [
   './config.js?v=968','./pwa-bridge.js?v=968',
   './manifest.webmanifest?v=968','./icon-192.png','./icon-512.png',
   './icon-maskable-512.png','./favicon-32.png?v=968',
-  './apple-touch-icon-180.png','./install-ui.js','./install-help.html',
-  './install-diagnostics.html'
+  './apple-touch-icon-180.png','./install-ui.js','./install-help.html'
+
 ];
 const PUBLIC_PATHS = new Set(PARTS.filter(p=>p!=='./'&&p!=='./index.html').map(p=>new URL(p, BASE).pathname));
 
