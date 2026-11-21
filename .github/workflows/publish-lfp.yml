@@ -140,16 +140,41 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Allow GitHub Pages artifact metadata to settle
-        run: sleep 8
+      - name: Let the legacy branch Pages deploy finish first
+        run: sleep 35
 
       - name: Deploy LFP v9.68 to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
 
-      - name: Verify live GitHub Pages v9.68
+      - name: Verify live root budget and separate installable PWA preview
+        shell: bash
         run: |
           set -euo pipefail
-          curl --fail --location --silent --show-error --retry 5 --retry-delay 3 --max-time 60 https://ndinar1982.github.io/health.html | grep -q 'PWA v9.68'
-          curl --fail --location --silent --show-error --retry 5 --retry-delay 3 --max-time 60 https://ndinar1982.github.io/index.html | grep -q 'v9.68 Firebase'
-          echo "GitHub Pages serves LFP v9.68."
+          BASE="https://ndinar1982.github.io"
+          passed=0
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/health.html" -o /tmp/lfp-health.html \
+              && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/index.html" -o /tmp/lfp-root.html \
+              && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/pwa-preview/" -o /tmp/lfp-preview.html \
+              && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/pwa-preview/manifest.webmanifest" -o /tmp/lfp-preview-manifest.json \
+              && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/pwa-preview/install-help.html" -o /tmp/lfp-preview-help.html \
+              && grep -q 'PWA v9.68' /tmp/lfp-health.html \
+              && grep -q 'v9.68 Firebase' /tmp/lfp-root.html \
+              && grep -q 'v9.68 · PWA тест' /tmp/lfp-preview.html \
+              && grep -q 'Диагностика установки' /tmp/lfp-preview-help.html; then
+              passed=1
+              break
+            fi
+            echo "Pages CDN still updating (attempt $attempt); trying again..."
+            sleep 4
+          done
+          test "$passed" -eq 1
+          python3 - <<'PY'
+          import json
+          m=json.load(open('/tmp/lfp-preview-manifest.json',encoding='utf-8'))
+          assert m['id']==m['start_url']==m['scope']=='/pwa-preview/'
+          assert m['display']=='standalone'
+          assert {'192x192','512x512'}.issubset({i['sizes'] for i in m['icons']})
+          print('PASS: root v9.68 remains unchanged; standalone preview /pwa-preview/ has valid manifest/icons')
+          PY
