@@ -8,6 +8,7 @@ on:
       - ".github/workflows/publish-lfp.yml"
       - "lfp-about.html"
       - "lfp-privacy.html"
+      - "pwa-preview-src/**"
   workflow_dispatch:
 
 permissions:
@@ -89,6 +90,43 @@ jobs:
           grep -q "Политика конфиденциальности" _site/lfp-privacy.html
           grep -q 'href="/lfp-privacy.html"' _site/lfp-about.html
           echo "Included two public information pages; production financial app files unchanged."
+
+      - name: Build isolated installability preview without changing finance or live PWA
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _site/pwa-preview
+          # Copies only vetted, already-public frontend files. No server code, no financial data.
+          for file in index.html budget-app.js budget.css config.js pwa-bridge.js favicon-32.png icon-192.png icon-512.png icon-maskable-512.png apple-touch-icon.png apple-touch-icon-180.png; do
+            cp "_site/$file" "_site/pwa-preview/$file"
+          done
+          cp pwa-preview-src/manifest.webmanifest _site/pwa-preview/manifest.webmanifest
+          cp pwa-preview-src/sw.js _site/pwa-preview/sw.js
+          cp pwa-preview-src/install-ui.js _site/pwa-preview/install-ui.js
+          cp pwa-preview-src/install-help.html _site/pwa-preview/install-help.html
+
+          # Keep exact v9.68 financial app, CSS and Google OAuth client.
+          cmp _site/budget-app.js _site/pwa-preview/budget-app.js
+          cmp _site/budget.css _site/pwa-preview/budget.css
+          cmp _site/pwa-bridge.js _site/pwa-preview/pwa-bridge.js
+          cmp _site/config.js _site/pwa-preview/config.js
+
+          python3 - <<'PY'
+          import pathlib, json
+          p=pathlib.Path('_site/pwa-preview/index.html')
+          s=p.read_text(encoding='utf-8')
+          assert s.count('v9.68 Firebase')==1
+          assert s.count('</body>')==1
+          s=s.replace('v9.68 Firebase','v9.68 · PWA тест',1)
+          s=s.replace('</body>','<script src="./install-ui.js"></script>\n</body>',1)
+          p.write_text(s,encoding='utf-8')
+          m=json.loads(pathlib.Path('_site/pwa-preview/manifest.webmanifest').read_text(encoding='utf-8'))
+          assert m['start_url']==m['scope']==m['id']=='/pwa-preview/'
+          assert m['display']=='standalone'
+          assert {'192x192','512x512'}.issubset({i['sizes'] for i in m['icons']})
+          assert '<link rel="manifest" href="./manifest.webmanifest?v=968">' in s
+          print('Isolated PWA preview valid; original UI, OAuth and finances unchanged.')
+          PY
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4

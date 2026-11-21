@@ -1,0 +1,36 @@
+{
+  "name": "ЛФП — Семейный бюджет (тест PWA)",
+  "short_name": "ЛФП тест",
+  "description": "Установка семейного бюджета v9.68 в отдельное окно. Защищённая авторизация Google остается прежней.",
+  "lang": "ru",
+  "id": "/pwa-preview/",
+  "start_url": "/pwa-preview/",
+  "scope": "/pwa-preview/",
+  "display": "standalone",
+  "display_override": [
+    "standalone"
+  ],
+  "background_color": "#e9f0f7",
+  "theme_color": "#2f87d0",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
