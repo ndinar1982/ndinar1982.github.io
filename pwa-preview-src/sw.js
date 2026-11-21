@@ -3,14 +3,14 @@
    Google Sheets responses or ZenMoney data in the Service Worker Cache API.
 */
 'use strict';
-const CACHE = 'lfp-pwa-install-test-v968-1';
+const CACHE = 'lfp-pwa-install-test-v968-2';
 const BASE = new URL(self.registration.scope);
 const PARTS = [
   './','./index.html','./budget-app.js?v=968','./budget.css?v=968',
   './config.js?v=968','./pwa-bridge.js?v=968',
   './manifest.webmanifest?v=968','./icon-192.png','./icon-512.png',
   './icon-maskable-512.png','./favicon-32.png?v=968',
-  './apple-touch-icon-180.png','./install-ui.js','./install-help.html'
+  './apple-touch-icon-180.png','./install-ui.js','./offline-bridge.js','./install-help.html'
 
 ];
 const PUBLIC_PATHS = new Set(PARTS.filter(p=>p!=='./'&&p!=='./index.html').map(p=>new URL(p, BASE).pathname));
