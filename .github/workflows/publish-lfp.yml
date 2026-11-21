@@ -82,6 +82,23 @@ jobs:
           touch _site/.nojekyll
           echo "Verified 48 LFP v9.68 static assets."
 
+      - name: Let root SW ignore separate installable apps
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('_site/sw.js')
+          s=p.read_text(encoding='utf-8')
+          marker="if(req.mode==='navigate'){"
+          assert s.count(marker)==1, 'Unexpected root service worker'
+          s=s.replace(marker,marker+"\n    if(url.pathname!=='/' && url.pathname!=='/index.html')return;",1)
+          s=s.replace("const SHELL_CACHE='lfp-shell-v968';","const SHELL_CACHE='lfp-shell-v968-root-only';")
+          assert 'lfp-shell-v968-root-only' in s
+          p.write_text(s,encoding='utf-8')
+          print('PASS: root PWA stays intact but does not intercept /pwa-preview/ or /pwa-local/ navigations.')
+          PY
+
       - name: Include LFP public OAuth information pages
         shell: bash
         run: |
@@ -175,10 +192,13 @@ jobs:
               && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/pwa-preview/" -o /tmp/lfp-preview.html \
               && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/pwa-preview/manifest.webmanifest" -o /tmp/lfp-preview-manifest.json \
               && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/pwa-preview/install-help.html" -o /tmp/lfp-preview-help.html \
+              && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/pwa-local/" -o /tmp/lfp-local.html \
+              && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/pwa-local/manifest.webmanifest" -o /tmp/lfp-local-manifest.json \
               && grep -q 'PWA v9.68' /tmp/lfp-health.html \
               && grep -q 'v9.68 Firebase' /tmp/lfp-root.html \
               && grep -q 'v9.68 · PWA тест' /tmp/lfp-preview.html \
-              && grep -q 'Проверка установки ЛФП' /tmp/lfp-preview-help.html; then
+              && grep -q 'Проверка установки ЛФП' /tmp/lfp-preview-help.html \
+              && grep -q 'v9.68 · локально' /tmp/lfp-local.html; then
               passed=1
               break
             fi
@@ -192,5 +212,9 @@ jobs:
           assert m['id']==m['start_url']==m['scope']=='/pwa-preview/'
           assert m['display']=='standalone'
           assert {'192x192','512x512'}.issubset({i['sizes'] for i in m['icons']})
+          local=json.load(open('/tmp/lfp-local-manifest.json',encoding='utf-8'))
+          assert local['id']==local['start_url']==local['scope']=='/pwa-local/'
+          assert local['display']=='standalone'
+          assert {'192x192','512x512'}.issubset({i['sizes'] for i in local['icons']})
           print('PASS: root v9.68 remains unchanged; standalone preview /pwa-preview/ has valid manifest/icons')
           PY
