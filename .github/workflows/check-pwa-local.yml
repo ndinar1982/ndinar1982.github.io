@@ -1,0 +1,55 @@
+name: Check local LFP v9.68 PWA without Google authentication (no deployment)
+
+on:
+  push:
+    branches: [lfp-no-google-local-preview-20261121]
+  pull_request:
+    paths:
+      - "pwa-local-src/**"
+      - ".github/workflows/check-pwa-local.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Download exact already-public v9.68 user interface into temporary directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          BASE="https://family-budget-lfp.web.app"
+          for file in index.html budget-app.js budget.css favicon-32.png icon-192.png icon-512.png icon-maskable-512.png apple-touch-icon.png apple-touch-icon-180.png; do
+            curl --fail --location --silent --show-error --retry 3 --connect-timeout 15 --max-time 60 "$BASE/$file" -o "_site/$file"
+          done
+      - name: Validate no-Google local build, UI, calculations and installability
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check pwa-local-src/build-local.mjs
+          node --check pwa-local-src/sw.js
+          node --check pwa-local-src/local-controls.js
+          node --check pwa-local-src/test-local.mjs
+          node pwa-local-src/build-local.mjs _site
+          node --check _site/pwa-local/budget-app.js
+          node pwa-local-src/test-local.mjs _site/pwa-local
+          cmp _site/budget.css _site/pwa-local/budget.css
+      - name: Confirm original site files were never changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --name-only origin/main...HEAD
+          if git diff --name-only origin/main...HEAD | grep -E '^(index.html|health.html|README.md|lfp-about.html|lfp-privacy.html)$'; then
+            echo "A live site file has been modified: stop"
+            exit 1
+          fi
+          echo "PASS: no production root pages modified; no deployment triggered"
