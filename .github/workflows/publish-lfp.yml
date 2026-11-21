@@ -162,7 +162,7 @@ jobs:
               && grep -q 'PWA v9.68' /tmp/lfp-health.html \
               && grep -q 'v9.68 Firebase' /tmp/lfp-root.html \
               && grep -q 'v9.68 · PWA тест' /tmp/lfp-preview.html \
-              && grep -q 'Диагностика установки' /tmp/lfp-preview-help.html; then
+              && grep -q 'Проверка установки ЛФП' /tmp/lfp-preview-help.html; then
               passed=1
               break
             fi
