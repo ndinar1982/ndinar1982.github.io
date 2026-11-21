@@ -6,6 +6,8 @@ on:
       - main
     paths:
       - ".github/workflows/publish-lfp.yml"
+      - "lfp-about.html"
+      - "lfp-privacy.html"
   workflow_dispatch:
 
 permissions:
@@ -77,6 +79,16 @@ jobs:
           LFP_HEALTH
           touch _site/.nojekyll
           echo "Verified 48 LFP v9.68 static assets."
+
+      - name: Include LFP public OAuth information pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -m 0644 lfp-about.html _site/lfp-about.html
+          install -m 0644 lfp-privacy.html _site/lfp-privacy.html
+          grep -q "Политика конфиденциальности" _site/lfp-privacy.html
+          grep -q 'href="/lfp-privacy.html"' _site/lfp-about.html
+          echo "Included two public information pages; production financial app files unchanged."
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
