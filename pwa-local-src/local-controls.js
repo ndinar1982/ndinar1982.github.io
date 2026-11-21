@@ -3,7 +3,7 @@
    Local backup files are unencrypted: keep them private. */
 (function(){
 'use strict';
-const KEY='bdds-data';
+const KEY='lfp-device-local-v968-data';
 const LIMIT=8*1024*1024;
 const panel=document.createElement('section');
 panel.id='lfp-local-tools';
