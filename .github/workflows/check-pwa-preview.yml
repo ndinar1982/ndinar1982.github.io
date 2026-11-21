@@ -42,3 +42,17 @@ jobs:
             exit 1
           fi
           echo "PASS: existing root deployment content unchanged; preview not deployed"
+
+      - name: Inspect actual public GitHub Pages routes (safe GET only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          for page in health.html index.html pwa-preview/ pwa-preview/manifest.webmanifest pwa-preview/install-help.html pwa-preview/sw.js; do
+            tmp="/tmp/lfp-live-${page//\//_}"
+            status="$(curl -L -sS --connect-timeout 15 --max-time 25 -w '%{http_code}' "https://ndinar1982.github.io/$page" -o "$tmp" || true)"
+            bytes="$(wc -c < "$tmp" 2>/dev/null || echo missing)"
+            echo "PATH: $page | HTTP: $status | bytes: $bytes"
+            if [[ "$page" == "health.html" ]] || [[ "$page" == "index.html" ]] || [[ "$page" == "pwa-preview/" ]]; then
+              grep -Eo 'Тест доступности без VPN|v9\.68 Firebase|v9\.68 · PWA тест|PWA v9\.68|ЛФП — проверка' "$tmp" | head -n 5 || true
+            fi
+          done
