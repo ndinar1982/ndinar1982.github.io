@@ -23,7 +23,11 @@ js=replaceOnce(js,origBoot,"async function boot(){\n  // В этой отдел�
 assert.match(js,/function useLocal\(\)/);
 assert.match(js,/localStorage\.getItem\('bdds-data'\)/);
 assert.match(js,/store\.write=save;store\.writeSettings=save/);
+// Dedicated storage namespace: PWA-local must never read/write data from other applications on this origin.
+js=replaceOnce(js,"localStorage.getItem('bdds-data')","localStorage.getItem('lfp-device-local-v968-data')");
+js=replaceOnce(js,"localStorage.setItem('bdds-data'","localStorage.setItem('lfp-device-local-v968-data'");
 assert.doesNotMatch(js,/await window\.LFP_PWA\.ensureAuth\(\)/);
+assert.doesNotMatch(js,/localStorage\.(?:getItem|setItem)\('bdds-data'/);
 let html=source('index.html');
 assert.equal(html.split('v9.68 Firebase').length,2);
 html=html.replace('v9.68 Firebase','v9.68 · локально');
