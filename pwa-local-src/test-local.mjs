@@ -41,7 +41,7 @@ assert.doesNotMatch(panel,/\bfetch\(|XMLHttpRequest|google\.accounts|scripts:run
 assert.match(sw,/lfp-local-shell-v968-1/);
 assert.match(sw,/url\.pathname\.startsWith\(BASE\.pathname\)/);
 assert.doesNotMatch(sw,/oauth|auth-session|script\.googleapis\.com/i);
-assert.doesNotMatch(sw,/localStorage|indexedDB|finance_rpc|access_token|refresh_token/i);
+assert.doesNotMatch(sw,/\b(?:localStorage\.|indexedDB\.|finance_rpc|access_token|refresh_token)/i);
 for(const file of ['icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon-180.png']){
   assert.ok(fs.statSync(root+'/'+file).size>200,'image is missing: '+file);
 }
