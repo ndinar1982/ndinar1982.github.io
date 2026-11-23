@@ -179,6 +179,18 @@ jobs:
           grep -q 'v9.68 · PWA тест' _site/pwa-preview/index.html
           grep -q 'v9.68 · локально' _site/pwa-local/index.html
 
+      - name: Promote secured GAS PWA to primary URL, retain exact v9.68 fallback
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check pwa-gas-src/build-root.mjs
+          node pwa-gas-src/build-root.mjs _site
+          node --check _site/app.js
+          node --check _site/sw.js
+          node pwa-gas-src/test-root.mjs _site
+          cmp _site/index.html _site/pwa-gas/index.html
+          cmp _site/app.js _site/pwa-gas/app.js
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
@@ -198,7 +210,7 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-      - name: Verify live root budget and separate installable PWA preview
+      - name: Verify primary PWA GAS, v9.68 fallback and all separate previews
         shell: bash
         run: |
           set -euo pipefail
@@ -214,8 +226,11 @@ jobs:
               && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/pwa-local/manifest.webmanifest" -o /tmp/lfp-local-manifest.json \
               && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/pwa-gas/" -o /tmp/lfp-gas.html \
               && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/pwa-gas/manifest.webmanifest" -o /tmp/lfp-gas-manifest.json \
+              && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/manifest.webmanifest" -o /tmp/lfp-root-manifest.json \
+              && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/v968-direct/" -o /tmp/lfp-direct.html \
               && grep -q 'PWA v9.68' /tmp/lfp-health.html \
-              && grep -q 'v9.68 Firebase' /tmp/lfp-root.html \
+              && grep -q 'id="budget-frame"' /tmp/lfp-root.html \
+              && grep -q 'v9.68 Firebase' /tmp/lfp-direct.html \
               && grep -q 'v9.68 · PWA тест' /tmp/lfp-preview.html \
               && grep -q 'Проверка установки ЛФП' /tmp/lfp-preview-help.html \
               && grep -q 'v9.68 · локально' /tmp/lfp-local.html \
@@ -241,5 +256,9 @@ jobs:
           assert gas['id']==gas['start_url']==gas['scope']=='/pwa-gas/'
           assert gas['display']=='standalone'
           assert {'192x192','512x512'}.issubset({i['sizes'] for i in gas['icons']})
-          print('PASS: root v9.68 remains unchanged; standalone preview /pwa-preview/ has valid manifest/icons')
+          root=json.load(open('/tmp/lfp-root-manifest.json',encoding='utf-8'))
+          assert root['id']==root['start_url']==root['scope']=='/'
+          assert root['display']=='standalone'
+          assert {'192x192','512x512'}.issubset({i['sizes'] for i in root['icons']})
+          print('PASS: main / is the standalone iframe PWA; original OAuth v9.68 preserved at /v968-direct/; independent apps intact')
           PY
