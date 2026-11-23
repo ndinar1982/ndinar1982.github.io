@@ -29,7 +29,7 @@ assert.match(app,/beforeinstallprompt/);
 assert.match(app,/https:\/\/script\.google\.com/);
 assert.match(app,/window\.open\(current/);
 assert.match(sw,/lfp-gas-iframe-root-v2/);
-assert.match(sw,/k\.startsWith\('lfp-shell-'\)/);
+assert.match(sw,/x\.startsWith\('lfp-shell-'\)/);
 assert.match(sw,/KNOWN\.has\(url\.pathname\)/);
 assert.doesNotMatch(sw,/fetch\(['"]https:\/\/script\.google\.com|caches\.put\(.*financial|access_token|refresh_token/);
 for(const [name,code] of [['app.js',app],['sw.js',sw]])new vm.Script(code,{filename:name});
