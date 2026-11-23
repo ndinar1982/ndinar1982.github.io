@@ -1,0 +1,38 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import path from 'node:path';
+const root=process.argv[2]||'pwa-gas-src';
+const read=name=>fs.readFileSync(path.join(root,name),'utf8');
+const m=JSON.parse(read('manifest.webmanifest'));
+const html=read('index.html'),js=read('app.js'),sw=read('sw.js');
+assert.equal(m.id,'/pwa-gas/');
+assert.equal(m.start_url,'/pwa-gas/');
+assert.equal(m.scope,'/pwa-gas/');
+assert.equal(m.display,'standalone');
+assert.ok(m.icons.find(x=>x.sizes==='192x192'));
+assert.ok(m.icons.find(x=>x.sizes==='512x512'));
+assert.ok(m.icons.find(x=>x.purpose==='maskable'));
+assert.match(html,/id="budget-frame"/);
+assert.match(html,/id="gas-url"/);
+assert.match(html,/src="\.\/app\.js\?v=1"/);
+assert.match(html,/href="\.\/manifest\.webmanifest\?v=1"/);
+assert.match(html,/id="direct-link"/);
+assert.match(html,/id="install-btn"/);
+assert.doesNotMatch(html,/accounts\.google\.com|google\.script\.run|oauthClientId|firebas(e|eAuth)|serviceAccountKey/i);
+assert.match(js,/script\.google\.com/);
+assert.match(js,/\/exec/);
+assert.match(js,/localStorage\.setItem\(KEY,url\)/);
+assert.match(js,/budget-frame/);
+assert.match(js,/window\.open\(current/);
+assert.match(js,/beforeinstallprompt/);
+assert.doesNotMatch(js,/google\.script\.run|access_token|refresh_token|firebase\.auth|fetch\(.*getAll/);
+assert.match(sw,/lfp-gas-iframe-shell-v1/);
+assert.match(sw,/url\.origin!==BASE\.origin/);
+assert.match(sw,/KNOWN\.has\(url\.pathname\)/);
+assert.doesNotMatch(sw,/https:\/\/script\.google\.com|google\.script\.run|finance\/getAll|token/i);
+for(const [name,src] of [['app.js',js],['sw.js',sw]])new vm.Script(src,{filename:name});
+for(const file of ['icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon-180.png']){
+  if(fs.existsSync(path.join(root,file)))assert.ok(fs.statSync(path.join(root,file)).size>100);
+}
+console.log('PASS: iframe PWA has standalone manifest, icons, no OAuth code, strict /exec URL, fallback and no financial caching');
