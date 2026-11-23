@@ -40,8 +40,8 @@ function single(oldText,newText){
   sw=sw.replace(oldText,newText);
 }
 single("const CACHE='lfp-gas-iframe-shell-v1'","const CACHE='lfp-gas-iframe-root-v2'");
-single("k.startsWith('lfp-gas-iframe-shell-')&&k!==CACHE",
-       "(k.startsWith('lfp-shell-')||k.startsWith('lfp-gas-iframe-root-'))&&k!==CACHE");
+single("x.startsWith('lfp-gas-iframe-shell-')&&x!==CACHE",
+       "(x.startsWith('lfp-shell-')||x.startsWith('lfp-gas-iframe-root-'))&&x!==CACHE");
 fs.writeFileSync(root('sw.js'),sw);
 assert.equal(read('index.html'),read('pwa-gas/index.html'));
 assert.equal(read('app.js'),read('pwa-gas/app.js'));
