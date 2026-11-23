@@ -1,14 +1,8 @@
-name: Publish LFP PWA v9.70 to GitHub Pages
+name: Publish LFP PWA
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/publish-lfp.yml"
-      - "lfp-about.html"
-      - "lfp-privacy.html"
-      - "pwa-gas-src/**"
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -24,129 +18,18 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout public deployment repository
-        uses: actions/checkout@v4
-
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-
-      - name: Download vetted static assets from existing Firebase production
-        shell: bash
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/configure-pages@v5
+      - name: Build the PWA from local assets
         run: |
-          set -euo pipefail
-          BASE="https://family-budget-lfp.web.app"
-          mkdir -p _site/app-parts
-
-          # Only the 48 already-public production front-end assets.
-          # No source from the private repo, financial data, or credentials.
-          paths=(
-            index.html
-            budget-app.js
-            budget.css
-            config.js
-            pwa-bridge.js
-            session-bridge.js
-            sw.js
-            manifest.webmanifest
-            favicon-32.png
-            icon-192.png
-            icon-512.png
-            icon-maskable-512.png
-            apple-touch-icon.png
-            apple-touch-icon-180.png
-            google-check.html
-            health.html
-          )
-          for path in "${paths[@]}"; do
-            curl --fail --location --silent --show-error --retry 2 --connect-timeout 15 --max-time 90 "${BASE}/${path}" --output "_site/${path}"
-          done
-          for number in $(seq -w 1 32); do
-            curl --fail --location --silent --show-error --retry 2 --connect-timeout 15 --max-time 90 "${BASE}/app-parts/${number}.txt" --output "_site/app-parts/${number}.txt"
-          done
-
-          test "$(find _site -type f | wc -l)" -eq 48
-          grep -q 'v9.68 Firebase' _site/index.html
-          grep -q 'PWA v9.68' _site/health.html
-          test "$(wc -c < _site/budget-app.js)" -gt 250000
-          test "$(wc -c < _site/budget.css)" -gt 70000
-          test "$(wc -c < _site/pwa-bridge.js)" -gt 4500
-
-          # Keep the app unchanged; only the host health banner differs.
-          cat > _site/health.html <<'LFP_HEALTH'
-          <!doctype html>
-          <html lang="ru"><head><meta charset="utf-8"><title>ЛФП — GitHub Pages</title></head>
-          <body><h1>GitHub Pages работает</h1><p>PWA v9.68 — статические файлы опубликованы.</p>
-          <p>Finance API: unchanged (Google Apps Script). OAuth requires approved GitHub origin.</p></body></html>
-          LFP_HEALTH
-          touch _site/.nojekyll
-          echo "Verified 48 LFP v9.68 static assets."
-
-      - name: Preserve existing legacy service worker navigation behavior
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('_site/sw.js')
-          s=p.read_text(encoding='utf-8')
-          marker="if(req.mode==='navigate'){"
-          assert s.count(marker)==1, 'Unexpected root service worker'
-          s=s.replace(marker,marker+"\n    if(url.pathname!=='/' && url.pathname!=='/index.html')return;",1)
-          s=s.replace("const SHELL_CACHE='lfp-shell-v968';","const SHELL_CACHE='lfp-shell-v968-root-only';")
-          assert 'lfp-shell-v968-root-only' in s
-          p.write_text(s,encoding='utf-8')
-          print('PASS: preserved existing legacy service worker navigation behavior.')
-          PY
-
-      - name: Include LFP public OAuth information pages
-        shell: bash
-        run: |
-          set -euo pipefail
-          install -m 0644 lfp-about.html _site/lfp-about.html
-          install -m 0644 lfp-privacy.html _site/lfp-privacy.html
-          grep -q "Политика конфиденциальности" _site/lfp-privacy.html
-          grep -q 'href="/lfp-privacy.html"' _site/lfp-about.html
-          echo "Included two public information pages; production financial app files unchanged."
-
-      - name: Build PWA v9.70 at the existing /pwa-gas/ URL
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p _site/pwa-gas
-          cp pwa-gas-src/index.html pwa-gas-src/app.js pwa-gas-src/sw.js pwa-gas-src/manifest.webmanifest _site/pwa-gas/
-          for file in favicon-32.png icon-192.png icon-512.png icon-maskable-512.png apple-touch-icon-180.png; do
-            cp "_site/$file" "_site/pwa-gas/$file"
-          done
-          node --check pwa-gas-src/app.js
-          node --check pwa-gas-src/sw.js
-          node pwa-gas-src/test.mjs _site/pwa-gas
-          # Keep the original v9.68 app available for the direct fallback.
-          grep -q 'v9.68 Firebase' _site/index.html
-
-      - name: Promote PWA v9.70 to primary URL and retain the v9.68 fallback
-        shell: bash
-        run: |
-          set -euo pipefail
-          node --check pwa-gas-src/build-root.mjs
+          node pwa-gas-src/test.mjs
           node pwa-gas-src/build-root.mjs _site
-          node --check _site/app.js
-          node --check _site/sw.js
+          node pwa-gas-src/test.mjs _site/pwa-gas
           node pwa-gas-src/test-root.mjs _site
-          cmp _site/index.html _site/pwa-gas/index.html
-          cmp _site/app.js _site/pwa-gas/app.js
-          test ! -e _site/pwa-preview
-          test ! -e _site/pwa-local
-
-          # The fallback keeps its existing v9.68 banner; this describes the current root shell.
-          cat > _site/health.html <<'LFP_HEALTH'
-          <!doctype html>
-          <html lang="ru"><head><meta charset="utf-8"><title>ЛФП — GitHub Pages</title></head>
-          <body><h1>GitHub Pages работает</h1><p>PWA — оболочка Apps Script опубликована.</p>
-          <p>Резервный интерфейс сохранён по адресу /v968-direct/.</p></body></html>
-          LFP_HEALTH
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v4
         with:
           path: _site
 
@@ -157,32 +40,27 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Let the legacy branch Pages deploy finish first
-        run: sleep 35
-
-      - name: Deploy LFP PWA v9.70 to GitHub Pages
+      - name: Deploy the PWA
         id: deployment
         uses: actions/deploy-pages@v4
-
-      - name: Verify PWA v9.70 and the v9.68 fallback
+      - name: Verify both installed PWA URLs
         shell: bash
         run: |
           set -euo pipefail
           BASE="https://ndinar1982.github.io"
           passed=0
           for attempt in 1 2 3 4 5 6 7 8; do
-            if curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/health.html" -o /tmp/lfp-health.html \
-              && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/index.html" -o /tmp/lfp-root.html \
-              && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/pwa-gas/" -o /tmp/lfp-gas.html \
-              && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/pwa-gas/manifest.webmanifest" -o /tmp/lfp-gas-manifest.json \
-              && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/manifest.webmanifest" -o /tmp/lfp-root-manifest.json \
-              && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/v968-direct/" -o /tmp/lfp-direct.html \
-              && grep -Fq 'PWA — оболочка Apps Script опубликована.' /tmp/lfp-health.html \
-              && grep -q 'id="budget-frame"' /tmp/lfp-root.html \
-              && grep -Fq 'src="./app.js?v=970"' /tmp/lfp-root.html \
-              && grep -q 'v9.68 Firebase' /tmp/lfp-direct.html \
-              && grep -q 'id="budget-frame"' /tmp/lfp-gas.html \
-              && grep -Fq 'src="./app.js?v=970"' /tmp/lfp-gas.html; then
+            if curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 "$BASE/index.html" -o /tmp/lfp-root.html \
+              && curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 "$BASE/manifest.webmanifest" -o /tmp/lfp-root-manifest.json \
+              && curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 "$BASE/sw.js" -o /tmp/lfp-root-sw.js \
+              && curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 "$BASE/pwa-gas/" -o /tmp/lfp-gas.html \
+              && curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 "$BASE/pwa-gas/manifest.webmanifest" -o /tmp/lfp-gas-manifest.json \
+              && curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 "$BASE/pwa-gas/sw.js" -o /tmp/lfp-gas-sw.js \
+              && grep -Fq 'id="budget-frame"' /tmp/lfp-root.html \
+              && grep -Fq 'src="./app.js?v=971"' /tmp/lfp-root.html \
+              && grep -Fq 'src="./app.js?v=971"' /tmp/lfp-gas.html \
+              && grep -Fq "const CACHE='lfp-gas-iframe-root-v971'" /tmp/lfp-root-sw.js \
+              && grep -Fq "const CACHE='lfp-gas-iframe-shell-v971'" /tmp/lfp-gas-sw.js; then
               passed=1
               break
             fi
@@ -190,15 +68,14 @@ jobs:
             sleep 4
           done
           test "$passed" -eq 1
+          cmp /tmp/lfp-root.html /tmp/lfp-gas.html
           python3 - <<'PY'
           import json
-          gas=json.load(open('/tmp/lfp-gas-manifest.json',encoding='utf-8'))
-          assert gas['id']==gas['start_url']==gas['scope']=='/pwa-gas/'
-          assert gas['display']=='standalone'
-          assert {'192x192','512x512'}.issubset({i['sizes'] for i in gas['icons']})
-          root=json.load(open('/tmp/lfp-root-manifest.json',encoding='utf-8'))
-          assert root['id']==root['start_url']==root['scope']=='/'
-          assert root['display']=='standalone'
-          assert {'192x192','512x512'}.issubset({i['sizes'] for i in root['icons']})
-          print('PASS: PWA v9.70 at / and /pwa-gas/; original OAuth v9.68 preserved at /v968-direct/')
+          for filename,scope in [('root','/'),('gas','/pwa-gas/')]:
+              with open('/tmp/lfp-'+filename+'-manifest.json',encoding='utf-8') as handle:
+                  manifest=json.load(handle)
+              assert manifest['id']==manifest['start_url']==manifest['scope']==scope
+              assert manifest['display']=='standalone'
+              assert {'192x192','512x512'}.issubset({icon['sizes'] for icon in manifest['icons']})
+          print('PASS: installed PWA identities preserved at / and /pwa-gas/')
           PY

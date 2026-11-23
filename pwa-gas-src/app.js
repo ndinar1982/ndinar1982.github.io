@@ -1,4 +1,4 @@
-/* ЛФП PWA v9.70 — installable frame wrapper for the EXISTING secured Apps Script.
+/* ЛФП PWA v9.71 — installable frame wrapper for the EXISTING secured Apps Script.
    No OAuth, tokens, financial data or Google Sheets RPC is handled here.
    The protected HtmlService iframe still uses its own google.script.run.
    The /exec URL is a device-only preference, not a credential. */

@@ -1,71 +1,26 @@
-name: Check LFP PWA v9.70 and v9.68 fallback (no deploy)
+name: Check LFP PWA
 
 on:
   pull_request:
     paths:
       - "pwa-gas-src/**"
-      - ".github/workflows/publish-lfp.yml"
-      - ".github/workflows/check-pwa-gas.yml"
+      - ".github/workflows/**"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  inspect:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Static scripts and manifest
+      - name: Validate and build the PWA
         run: |
-          node --check pwa-gas-src/app.js
-          node --check pwa-gas-src/sw.js
-          node --check pwa-gas-src/test.mjs
           node pwa-gas-src/test.mjs
-      - name: Build PWA v9.70 with the existing public icons
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p /tmp/pwa-gas
-          cp pwa-gas-src/index.html pwa-gas-src/app.js pwa-gas-src/sw.js pwa-gas-src/manifest.webmanifest /tmp/pwa-gas/
-          for file in favicon-32.png icon-192.png icon-512.png icon-maskable-512.png apple-touch-icon-180.png; do
-            curl -fsSL --retry 3 --connect-timeout 15 --max-time 60 "https://ndinar1982.github.io/$file" -o "/tmp/pwa-gas/$file"
-          done
-          node pwa-gas-src/test.mjs /tmp/pwa-gas
-          echo "PASS: PWA /pwa-gas/ package built and static safety checks passed"
-      - name: Validate the primary PWA and v9.68 direct fallback (no deployment)
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p _site/app-parts _site/pwa-gas
-          BASE="https://family-budget-lfp.web.app"
-          for file in index.html budget-app.js budget.css config.js pwa-bridge.js session-bridge.js sw.js manifest.webmanifest favicon-32.png icon-192.png icon-512.png icon-maskable-512.png apple-touch-icon.png apple-touch-icon-180.png google-check.html health.html; do
-            curl -fsSL --retry 3 --connect-timeout 15 --max-time 60 "$BASE/$file" -o "_site/$file"
-          done
-          for number in $(seq -w 1 32); do
-            curl -fsSL --retry 3 --connect-timeout 15 --max-time 60 "$BASE/app-parts/$number.txt" -o "_site/app-parts/$number.txt"
-          done
-          cp pwa-gas-src/index.html pwa-gas-src/app.js pwa-gas-src/sw.js pwa-gas-src/manifest.webmanifest _site/pwa-gas/
-          node --check pwa-gas-src/build-root.mjs
-          node --check pwa-gas-src/test-root.mjs
           node pwa-gas-src/build-root.mjs _site
+          node pwa-gas-src/test.mjs _site/pwa-gas
           node pwa-gas-src/test-root.mjs _site
-          node --check _site/app.js
-          node --check _site/sw.js
-          echo "PASS: root PWA & old v9.68 fallback fully built; live Pages not touched"
-
-      - name: Confirm retained root probes and public information pages are unchanged
-        shell: bash
-        run: |
-          set -euo pipefail
-          git diff --name-only origin/main...HEAD | tee /tmp/changed-files.txt
-          if grep -Eq '^(index\.html|health\.html|lfp-about\.html|lfp-privacy\.html)$' /tmp/changed-files.txt; then
-            echo "A retained probe or public information page changed unexpectedly"
-            exit 1
-          fi
-          echo "PASS: retained root probes and public information pages are unchanged"

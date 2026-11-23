@@ -15,8 +15,8 @@ assert.ok(m.icons.find(x=>x.sizes==='512x512'));
 assert.ok(m.icons.find(x=>x.purpose==='maskable'));
 assert.match(html,/id="budget-frame"/);
 assert.match(html,/id="gas-url"/);
-assert.match(html,/src="\.\/app\.js\?v=970"/);
-assert.match(html,/href="\.\/manifest\.webmanifest\?v=970"/);
+assert.match(html,/src="\.\/app\.js\?v=971"/);
+assert.match(html,/href="\.\/manifest\.webmanifest\?v=971"/);
 assert.match(html,/id="direct-link"/);
 assert.match(html,/id="install-btn"/);
 assert.doesNotMatch(html,/accounts\.google\.com|google\.script\.run|oauthClientId|firebas(e|eAuth)|serviceAccountKey/i);
@@ -27,12 +27,16 @@ assert.match(js,/budget-frame/);
 assert.match(js,/window\.open\(current/);
 assert.match(js,/beforeinstallprompt/);
 assert.doesNotMatch(js.replace(/\/\*[\s\S]*?\*\//g,''),/google\.script\.run|access_token|refresh_token|firebase\.auth|fetch\(.*getAll/);
-assert.match(sw,/lfp-gas-iframe-shell-v970/);
+assert.match(sw,/lfp-gas-iframe-shell-v971/);
 assert.match(sw,/url\.origin!==BASE\.origin/);
 assert.match(sw,/KNOWN\.has\(url\.pathname\)/);
 assert.doesNotMatch(sw,/https:\/\/script\.google\.com|google\.script\.run|finance\/getAll|token/i);
 for(const [name,src] of [['app.js',js],['sw.js',sw]])new vm.Script(src,{filename:name});
-for(const file of ['icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon-180.png']){
-  if(fs.existsSync(path.join(root,file)))assert.ok(fs.statSync(path.join(root,file)).size>100);
+for(const [file,size] of [['favicon-32.png',32],['icon-192.png',192],['icon-512.png',512],['icon-maskable-512.png',512],['apple-touch-icon-180.png',180]]){
+  const data=fs.readFileSync(path.join(root,file));
+  assert.ok(data.length>100,'Missing icon data: '+file);
+  assert.equal(data.subarray(0,8).toString('hex'),'89504e470d0a1a0a','PNG required: '+file);
+  assert.equal(data.readUInt32BE(16),size,'Wrong icon width: '+file);
+  assert.equal(data.readUInt32BE(20),size,'Wrong icon height: '+file);
 }
-console.log('PASS: iframe PWA has standalone manifest, icons, no OAuth code, strict /exec URL, fallback and no financial caching');
+console.log('PASS: iframe PWA has standalone manifest, icons, no OAuth code, strict /exec URL, direct opening and no financial caching');
