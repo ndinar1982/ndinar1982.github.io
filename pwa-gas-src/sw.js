@@ -1,10 +1,10 @@
 /* Installable PWA shell only. No Google OAuth, finance responses or third-party
-   traffic is cached. Scope is /pwa-gas/; iframe requests remain on Google's origin. */
+   traffic is cached. Scope is /; iframe requests remain on Google's origin. */
 'use strict';
-const CACHE='lfp-gas-iframe-shell-v971';
+const CACHE='lfp-gas-iframe-root-v972';
 const BASE=new URL(self.registration.scope);
 const SHELL=[
-  './','./index.html','./app.js?v=971','./manifest.webmanifest?v=971',
+  './','./index.html','./app.js?v=972','./manifest.webmanifest?v=972',
   './favicon-32.png','./icon-192.png','./icon-512.png',
   './icon-maskable-512.png','./apple-touch-icon-180.png'
 ];
@@ -25,7 +25,7 @@ self.addEventListener('install',event=>{
 self.addEventListener('activate',event=>{
   event.waitUntil((async()=>{
     const names=await caches.keys();
-    await Promise.all(names.filter(x=>x.startsWith('lfp-gas-iframe-shell-')&&x!==CACHE).map(x=>caches.delete(x)));
+    await Promise.all(names.filter(x=>(x.startsWith('lfp-gas-iframe-shell-')||x.startsWith('lfp-gas-iframe-root-')||x.startsWith('lfp-shell-'))&&x!==CACHE).map(x=>caches.delete(x)));
     await self.clients.claim();
   })());
 });

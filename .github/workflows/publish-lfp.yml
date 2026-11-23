@@ -1,19 +1,15 @@
 name: Publish LFP PWA
-
 on:
   push:
     branches: [main]
   workflow_dispatch:
-
 permissions:
   contents: read
   pages: write
   id-token: write
-
 concurrency:
   group: lfp-github-pages
   cancel-in-progress: true
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,16 +19,14 @@ jobs:
         with:
           node-version: "22"
       - uses: actions/configure-pages@v5
-      - name: Build the PWA from local assets
+      - name: Build root PWA
         run: |
           node pwa-gas-src/test.mjs
           node pwa-gas-src/build-root.mjs _site
-          node pwa-gas-src/test.mjs _site/pwa-gas
           node pwa-gas-src/test-root.mjs _site
       - uses: actions/upload-pages-artifact@v4
         with:
           path: _site
-
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -43,7 +37,7 @@ jobs:
       - name: Deploy the PWA
         id: deployment
         uses: actions/deploy-pages@v4
-      - name: Verify both installed PWA URLs
+      - name: Verify root PWA and removed legacy route
         shell: bash
         run: |
           set -euo pipefail
@@ -53,29 +47,24 @@ jobs:
             if curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 "$BASE/index.html" -o /tmp/lfp-root.html \
               && curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 "$BASE/manifest.webmanifest" -o /tmp/lfp-root-manifest.json \
               && curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 "$BASE/sw.js" -o /tmp/lfp-root-sw.js \
-              && curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 "$BASE/pwa-gas/" -o /tmp/lfp-gas.html \
-              && curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 "$BASE/pwa-gas/manifest.webmanifest" -o /tmp/lfp-gas-manifest.json \
-              && curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 "$BASE/pwa-gas/sw.js" -o /tmp/lfp-gas-sw.js \
               && grep -Fq 'id="budget-frame"' /tmp/lfp-root.html \
-              && grep -Fq 'src="./app.js?v=971"' /tmp/lfp-root.html \
-              && grep -Fq 'src="./app.js?v=971"' /tmp/lfp-gas.html \
-              && grep -Fq "const CACHE='lfp-gas-iframe-root-v971'" /tmp/lfp-root-sw.js \
-              && grep -Fq "const CACHE='lfp-gas-iframe-shell-v971'" /tmp/lfp-gas-sw.js; then
+              && grep -Fq 'src="./app.js?v=972"' /tmp/lfp-root.html \
+              && grep -Fq "const CACHE='lfp-gas-iframe-root-v972'" /tmp/lfp-root-sw.js; then
               passed=1
               break
             fi
-            echo "Pages CDN still updating (attempt $attempt); trying again..."
+            echo "Pages CDN updating (attempt $attempt)"
             sleep 4
           done
           test "$passed" -eq 1
-          cmp /tmp/lfp-root.html /tmp/lfp-gas.html
           python3 - <<'PY'
           import json
-          for filename,scope in [('root','/'),('gas','/pwa-gas/')]:
-              with open('/tmp/lfp-'+filename+'-manifest.json',encoding='utf-8') as handle:
-                  manifest=json.load(handle)
-              assert manifest['id']==manifest['start_url']==manifest['scope']==scope
-              assert manifest['display']=='standalone'
-              assert {'192x192','512x512'}.issubset({icon['sizes'] for icon in manifest['icons']})
-          print('PASS: installed PWA identities preserved at / and /pwa-gas/')
+          with open('/tmp/lfp-root-manifest.json',encoding='utf-8') as handle:
+              m=json.load(handle)
+          assert m['id']==m['start_url']==m['scope']=='/'
+          assert m['display']=='standalone'
+          assert {'192x192','512x512'}.issubset({icon['sizes'] for icon in m['icons']})
+          print('PASS: only root PWA is published')
           PY
+          status=$(curl -sL -o /dev/null -w '%{http_code}' "$BASE/pwa-gas/")
+          test "$status" = "404"
