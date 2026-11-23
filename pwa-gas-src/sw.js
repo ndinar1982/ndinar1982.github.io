@@ -1,10 +1,10 @@
 /* Installable PWA shell only. No Google OAuth, finance responses or third-party
    traffic is cached. Scope is /pwa-gas/; iframe requests remain on Google's origin. */
 'use strict';
-const CACHE='lfp-gas-iframe-shell-v969';
+const CACHE='lfp-gas-iframe-shell-v970';
 const BASE=new URL(self.registration.scope);
 const SHELL=[
-  './','./index.html','./app.js?v=969','./manifest.webmanifest?v=969',
+  './','./index.html','./app.js?v=970','./manifest.webmanifest?v=970',
   './favicon-32.png','./icon-192.png','./icon-512.png',
   './icon-maskable-512.png','./apple-touch-icon-180.png'
 ];

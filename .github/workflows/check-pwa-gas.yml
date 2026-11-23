@@ -1,4 +1,4 @@
-name: Check LFP PWA v9.69 and v9.68 fallback (no deploy)
+name: Check LFP PWA v9.70 and v9.68 fallback (no deploy)
 
 on:
   pull_request:
@@ -27,7 +27,7 @@ jobs:
           node --check pwa-gas-src/sw.js
           node --check pwa-gas-src/test.mjs
           node pwa-gas-src/test.mjs
-      - name: Build PWA v9.69 with the existing public icons
+      - name: Build PWA v9.70 with the existing public icons
         shell: bash
         run: |
           set -euo pipefail

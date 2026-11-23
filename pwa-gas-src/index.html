@@ -7,10 +7,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="ЛФП">
-<meta name="description" content="ЛФП · PWA v9.69 — оболочка семейного бюджета в Google Apps Script">
+<meta name="description" content="ЛФП · PWA — оболочка семейного бюджета в Google Apps Script">
 <meta name="robots" content="noindex,nofollow">
 <title>ЛФП — Семейный бюджет</title>
-<link rel="manifest" href="./manifest.webmanifest?v=969">
+<link rel="manifest" href="./manifest.webmanifest?v=970">
 <link rel="icon" type="image/png" href="./favicon-32.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon-180.png">
 <style>
@@ -51,18 +51,18 @@ input:focus{outline:2px solid #86bdf2;outline-offset:1px}
 #state{font-size:12px;color:#5d6f83;line-height:1.4}
 @media(max-width:650px){.card{padding:20px}h1{font-size:21px}#frame-note{font-size:11px}}
 </style>
-<script src="./app.js?v=969" defer></script>
+<script src="./app.js?v=970" defer></script>
 </head>
 <body>
 <div id="app">
   <div id="frame-wrap" hidden>
-    <iframe id="budget-frame" title="Рабочий семейный бюджет v9.68 — Google Apps Script" loading="eager" referrerpolicy="no-referrer" allow="clipboard-read; clipboard-write"></iframe>
+    <iframe id="budget-frame" title="Рабочий семейный бюджет — Google Apps Script" loading="eager" referrerpolicy="no-referrer" allow="clipboard-read; clipboard-write"></iframe>
   </div>
   <section id="setup" aria-labelledby="title">
     <div class="card">
       <div class="head">
         <img src="./icon-192.png" width="52" height="52" alt="₽">
-        <div><h1 id="title">Семейный бюджет</h1><div class="muted">ЛФП · PWA v9.69</div></div>
+        <div><h1 id="title">Семейный бюджет</h1><div class="muted">ЛФП · PWA</div></div>
       </div>
       <p class="muted">Эта PWA открывает <strong>существующий рабочий бюджет</strong> из Google Apps Script, а не создаёт новую пустую базу.</p>
       <form id="url-form" autocomplete="off">
@@ -83,7 +83,7 @@ input:focus{outline:2px solid #86bdf2;outline-offset:1px}
   </section>
   <button id="menu-button" type="button" aria-controls="menu" aria-expanded="false" aria-label="Настройки PWA" hidden>₽</button>
   <section id="menu" aria-label="Меню PWA" hidden>
-    <h2>ЛФП · PWA v9.69</h2>
+    <h2>ЛФП · PWA</h2>
     <div class="small">Открыт защищённый Google Apps Script внутри PWA. Платформа GitHub не читает и не сохраняет финансовые данные.</div>
     <button class="btn secondary" id="direct-btn" type="button">Открыть бюджет напрямую</button>
     <button class="btn secondary" id="reload-btn" type="button">Обновить бюджет</button>

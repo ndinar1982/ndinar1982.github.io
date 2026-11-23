@@ -1,4 +1,4 @@
-name: Publish LFP PWA v9.69 to GitHub Pages
+name: Publish LFP PWA v9.70 to GitHub Pages
 
 on:
   push:
@@ -108,7 +108,7 @@ jobs:
           grep -q 'href="/lfp-privacy.html"' _site/lfp-about.html
           echo "Included two public information pages; production financial app files unchanged."
 
-      - name: Build PWA v9.69 at the existing /pwa-gas/ URL
+      - name: Build PWA v9.70 at the existing /pwa-gas/ URL
         shell: bash
         run: |
           set -euo pipefail
@@ -123,7 +123,7 @@ jobs:
           # Keep the original v9.68 app available for the direct fallback.
           grep -q 'v9.68 Firebase' _site/index.html
 
-      - name: Promote PWA v9.69 to primary URL and retain the v9.68 fallback
+      - name: Promote PWA v9.70 to primary URL and retain the v9.68 fallback
         shell: bash
         run: |
           set -euo pipefail
@@ -141,8 +141,8 @@ jobs:
           cat > _site/health.html <<'LFP_HEALTH'
           <!doctype html>
           <html lang="ru"><head><meta charset="utf-8"><title>ЛФП — GitHub Pages</title></head>
-          <body><h1>GitHub Pages работает</h1><p>PWA v9.69 — оболочка Apps Script опубликована.</p>
-          <p>Резервный интерфейс v9.68 сохранён по адресу /v968-direct/.</p></body></html>
+          <body><h1>GitHub Pages работает</h1><p>PWA — оболочка Apps Script опубликована.</p>
+          <p>Резервный интерфейс сохранён по адресу /v968-direct/.</p></body></html>
           LFP_HEALTH
 
       - name: Upload Pages artifact
@@ -160,11 +160,11 @@ jobs:
       - name: Let the legacy branch Pages deploy finish first
         run: sleep 35
 
-      - name: Deploy LFP PWA v9.69 to GitHub Pages
+      - name: Deploy LFP PWA v9.70 to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
 
-      - name: Verify PWA v9.69 and the v9.68 fallback
+      - name: Verify PWA v9.70 and the v9.68 fallback
         shell: bash
         run: |
           set -euo pipefail
@@ -177,12 +177,12 @@ jobs:
               && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/pwa-gas/manifest.webmanifest" -o /tmp/lfp-gas-manifest.json \
               && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/manifest.webmanifest" -o /tmp/lfp-root-manifest.json \
               && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/v968-direct/" -o /tmp/lfp-direct.html \
-              && grep -q 'PWA v9.69' /tmp/lfp-health.html \
+              && grep -Fq 'PWA — оболочка Apps Script опубликована.' /tmp/lfp-health.html \
               && grep -q 'id="budget-frame"' /tmp/lfp-root.html \
-              && grep -q 'v9.69' /tmp/lfp-root.html \
+              && grep -Fq 'src="./app.js?v=970"' /tmp/lfp-root.html \
               && grep -q 'v9.68 Firebase' /tmp/lfp-direct.html \
               && grep -q 'id="budget-frame"' /tmp/lfp-gas.html \
-              && grep -q 'v9.69' /tmp/lfp-gas.html; then
+              && grep -Fq 'src="./app.js?v=970"' /tmp/lfp-gas.html; then
               passed=1
               break
             fi
@@ -200,5 +200,5 @@ jobs:
           assert root['id']==root['start_url']==root['scope']=='/'
           assert root['display']=='standalone'
           assert {'192x192','512x512'}.issubset({i['sizes'] for i in root['icons']})
-          print('PASS: PWA v9.69 at / and /pwa-gas/; original OAuth v9.68 preserved at /v968-direct/')
+          print('PASS: PWA v9.70 at / and /pwa-gas/; original OAuth v9.68 preserved at /v968-direct/')
           PY
