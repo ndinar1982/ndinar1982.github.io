@@ -1,7 +1,7 @@
 {
   "name": "ЛФП — Семейный бюджет",
   "short_name": "ЛФП",
-  "description": "Устанавливаемая оболочка для защищённого семейного бюджета v9.68 в Google Apps Script",
+  "description": "PWA v9.69 — устанавливаемая оболочка семейного бюджета в Google Apps Script",
   "lang": "ru",
   "id": "/pwa-gas/",
   "start_url": "/pwa-gas/",

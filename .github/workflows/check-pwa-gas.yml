@@ -1,8 +1,6 @@
-name: Check installable LFP v9.68 Apps Script iframe (no deploy)
+name: Check LFP PWA v9.69 and v9.68 fallback (no deploy)
 
 on:
-  push:
-    branches: [lfp-pwa-iframe-gas-20261123, lfp-root-pwa-gas-20261123]
   pull_request:
     paths:
       - "pwa-gas-src/**"
@@ -29,7 +27,7 @@ jobs:
           node --check pwa-gas-src/sw.js
           node --check pwa-gas-src/test.mjs
           node pwa-gas-src/test.mjs
-      - name: Build separate public PWA preview with the existing public icons
+      - name: Build PWA v9.69 with the existing public icons
         shell: bash
         run: |
           set -euo pipefail
@@ -40,7 +38,7 @@ jobs:
           done
           node pwa-gas-src/test.mjs /tmp/pwa-gas
           echo "PASS: PWA /pwa-gas/ package built and static safety checks passed"
-      - name: Validate primary Pages root switch and exact v9.68 direct fallback (no deployment)
+      - name: Validate the primary PWA and v9.68 direct fallback (no deployment)
         shell: bash
         run: |
           set -euo pipefail
@@ -61,13 +59,13 @@ jobs:
           node --check _site/sw.js
           echo "PASS: root PWA & old v9.68 fallback fully built; live Pages not touched"
 
-      - name: Confirm existing public budget and old PWA versions unchanged
+      - name: Confirm retained root probes and public information pages are unchanged
         shell: bash
         run: |
           set -euo pipefail
           git diff --name-only origin/main...HEAD | tee /tmp/changed-files.txt
-          if grep -Eq '^(index.html|health.html|README.md|lfp-about.html|lfp-privacy.html)$' /tmp/changed-files.txt; then
-            echo "Live production page changed unexpectedly"
+          if grep -Eq '^(index\.html|health\.html|lfp-about\.html|lfp-privacy\.html)$' /tmp/changed-files.txt; then
+            echo "A retained probe or public information page changed unexpectedly"
             exit 1
           fi
-          echo "PASS: original GitHub budget and private GAS backend not modified"
+          echo "PASS: retained root probes and public information pages are unchanged"

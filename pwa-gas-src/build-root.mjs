@@ -39,7 +39,7 @@ function single(oldText,newText){
   assert.equal(sw.split(oldText).length,2,'SW source changed: '+oldText);
   sw=sw.replace(oldText,newText);
 }
-single("const CACHE='lfp-gas-iframe-shell-v1'","const CACHE='lfp-gas-iframe-root-v2'");
+single("const CACHE='lfp-gas-iframe-shell-v969'","const CACHE='lfp-gas-iframe-root-v969'");
 single("x.startsWith('lfp-gas-iframe-shell-')&&x!==CACHE",
        "(x.startsWith('lfp-shell-')||x.startsWith('lfp-gas-iframe-root-'))&&x!==CACHE");
 fs.writeFileSync(root('sw.js'),sw);

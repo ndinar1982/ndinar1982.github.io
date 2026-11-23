@@ -1,4 +1,4 @@
-name: Publish LFP v9.68 frontend to GitHub Pages
+name: Publish LFP PWA v9.69 to GitHub Pages
 
 on:
   push:
@@ -8,8 +8,6 @@ on:
       - ".github/workflows/publish-lfp.yml"
       - "lfp-about.html"
       - "lfp-privacy.html"
-      - "pwa-preview-src/**"
-      - "pwa-local-src/**"
       - "pwa-gas-src/**"
   workflow_dispatch:
 
@@ -83,7 +81,7 @@ jobs:
           touch _site/.nojekyll
           echo "Verified 48 LFP v9.68 static assets."
 
-      - name: Let root SW ignore separate installable apps
+      - name: Preserve existing legacy service worker navigation behavior
         shell: bash
         run: |
           set -euo pipefail
@@ -97,7 +95,7 @@ jobs:
           s=s.replace("const SHELL_CACHE='lfp-shell-v968';","const SHELL_CACHE='lfp-shell-v968-root-only';")
           assert 'lfp-shell-v968-root-only' in s
           p.write_text(s,encoding='utf-8')
-          print('PASS: root PWA stays intact but does not intercept /pwa-preview/ or /pwa-local/ navigations.')
+          print('PASS: preserved existing legacy service worker navigation behavior.')
           PY
 
       - name: Include LFP public OAuth information pages
@@ -110,59 +108,7 @@ jobs:
           grep -q 'href="/lfp-privacy.html"' _site/lfp-about.html
           echo "Included two public information pages; production financial app files unchanged."
 
-      - name: Build isolated installability preview without changing finance or live PWA
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p _site/pwa-preview
-          # Copies only vetted, already-public frontend files. No server code, no financial data.
-          for file in index.html budget-app.js budget.css config.js pwa-bridge.js favicon-32.png icon-192.png icon-512.png icon-maskable-512.png apple-touch-icon.png apple-touch-icon-180.png; do
-            cp "_site/$file" "_site/pwa-preview/$file"
-          done
-          cp pwa-preview-src/manifest.webmanifest _site/pwa-preview/manifest.webmanifest
-          cp pwa-preview-src/sw.js _site/pwa-preview/sw.js
-          cp pwa-preview-src/install-ui.js _site/pwa-preview/install-ui.js
-          cp pwa-preview-src/install-help.html _site/pwa-preview/install-help.html
-
-          # Keep exact v9.68 financial app, CSS and Google OAuth client.
-          cmp _site/budget-app.js _site/pwa-preview/budget-app.js
-          cmp _site/budget.css _site/pwa-preview/budget.css
-          cmp _site/pwa-bridge.js _site/pwa-preview/pwa-bridge.js
-          cmp _site/config.js _site/pwa-preview/config.js
-
-          python3 - <<'PY'
-          import pathlib, json
-          p=pathlib.Path('_site/pwa-preview/index.html')
-          s=p.read_text(encoding='utf-8')
-          assert s.count('v9.68 Firebase')==1
-          assert s.count('</body>')==1
-          s=s.replace('v9.68 Firebase','v9.68 · PWA тест',1)
-          s=s.replace('</body>','<script src="./install-ui.js"></script>\n</body>',1)
-          p.write_text(s,encoding='utf-8')
-          m=json.loads(pathlib.Path('_site/pwa-preview/manifest.webmanifest').read_text(encoding='utf-8'))
-          assert m['start_url']==m['scope']==m['id']=='/pwa-preview/'
-          assert m['display']=='standalone'
-          assert {'192x192','512x512'}.issubset({i['sizes'] for i in m['icons']})
-          assert '<link rel="manifest" href="./manifest.webmanifest?v=968">' in s
-          print('Isolated PWA preview valid; original UI, OAuth and finances unchanged.')
-          PY
-
-      - name: Build isolated no-Google PWA v9.68 (local data only)
-        shell: bash
-        run: |
-          set -euo pipefail
-          node --check pwa-local-src/build-local.mjs
-          node --check pwa-local-src/local-controls.js
-          node --check pwa-local-src/sw.js
-          node pwa-local-src/build-local.mjs _site
-          node --check _site/pwa-local/budget-app.js
-          node pwa-local-src/test-local.mjs _site/pwa-local
-          cmp _site/budget.css _site/pwa-local/budget.css
-          # Root production code and OAuth bridge are never changed.
-          grep -q 'v9.68 Firebase' _site/index.html
-          grep -q 'v9.68 · локально' _site/pwa-local/index.html
-
-      - name: Build isolated Google Apps Script iframe PWA with no extra OAuth
+      - name: Build PWA v9.69 at the existing /pwa-gas/ URL
         shell: bash
         run: |
           set -euo pipefail
@@ -174,12 +120,10 @@ jobs:
           node --check pwa-gas-src/app.js
           node --check pwa-gas-src/sw.js
           node pwa-gas-src/test.mjs _site/pwa-gas
-          # Existing budget /, alternate /pwa-preview/, and /pwa-local/ remain unchanged.
+          # Keep the original v9.68 app available for the direct fallback.
           grep -q 'v9.68 Firebase' _site/index.html
-          grep -q 'v9.68 · PWA тест' _site/pwa-preview/index.html
-          grep -q 'v9.68 · локально' _site/pwa-local/index.html
 
-      - name: Promote secured GAS PWA to primary URL, retain exact v9.68 fallback
+      - name: Promote PWA v9.69 to primary URL and retain the v9.68 fallback
         shell: bash
         run: |
           set -euo pipefail
@@ -190,6 +134,16 @@ jobs:
           node pwa-gas-src/test-root.mjs _site
           cmp _site/index.html _site/pwa-gas/index.html
           cmp _site/app.js _site/pwa-gas/app.js
+          test ! -e _site/pwa-preview
+          test ! -e _site/pwa-local
+
+          # The fallback keeps its existing v9.68 banner; this describes the current root shell.
+          cat > _site/health.html <<'LFP_HEALTH'
+          <!doctype html>
+          <html lang="ru"><head><meta charset="utf-8"><title>ЛФП — GitHub Pages</title></head>
+          <body><h1>GitHub Pages работает</h1><p>PWA v9.69 — оболочка Apps Script опубликована.</p>
+          <p>Резервный интерфейс v9.68 сохранён по адресу /v968-direct/.</p></body></html>
+          LFP_HEALTH
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
@@ -206,11 +160,11 @@ jobs:
       - name: Let the legacy branch Pages deploy finish first
         run: sleep 35
 
-      - name: Deploy LFP v9.68 to GitHub Pages
+      - name: Deploy LFP PWA v9.69 to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
 
-      - name: Verify primary PWA GAS, v9.68 fallback and all separate previews
+      - name: Verify PWA v9.69 and the v9.68 fallback
         shell: bash
         run: |
           set -euo pipefail
@@ -219,22 +173,16 @@ jobs:
           for attempt in 1 2 3 4 5 6 7 8; do
             if curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/health.html" -o /tmp/lfp-health.html \
               && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/index.html" -o /tmp/lfp-root.html \
-              && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/pwa-preview/" -o /tmp/lfp-preview.html \
-              && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/pwa-preview/manifest.webmanifest" -o /tmp/lfp-preview-manifest.json \
-              && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/pwa-preview/install-help.html" -o /tmp/lfp-preview-help.html \
-              && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/pwa-local/" -o /tmp/lfp-local.html \
-              && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/pwa-local/manifest.webmanifest" -o /tmp/lfp-local-manifest.json \
               && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/pwa-gas/" -o /tmp/lfp-gas.html \
               && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/pwa-gas/manifest.webmanifest" -o /tmp/lfp-gas-manifest.json \
               && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/manifest.webmanifest" -o /tmp/lfp-root-manifest.json \
               && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/v968-direct/" -o /tmp/lfp-direct.html \
-              && grep -q 'PWA v9.68' /tmp/lfp-health.html \
+              && grep -q 'PWA v9.69' /tmp/lfp-health.html \
               && grep -q 'id="budget-frame"' /tmp/lfp-root.html \
+              && grep -q 'v9.69' /tmp/lfp-root.html \
               && grep -q 'v9.68 Firebase' /tmp/lfp-direct.html \
-              && grep -q 'v9.68 · PWA тест' /tmp/lfp-preview.html \
-              && grep -q 'Проверка установки ЛФП' /tmp/lfp-preview-help.html \
-              && grep -q 'v9.68 · локально' /tmp/lfp-local.html \
-              && grep -q 'id="budget-frame"' /tmp/lfp-gas.html; then
+              && grep -q 'id="budget-frame"' /tmp/lfp-gas.html \
+              && grep -q 'v9.69' /tmp/lfp-gas.html; then
               passed=1
               break
             fi
@@ -244,14 +192,6 @@ jobs:
           test "$passed" -eq 1
           python3 - <<'PY'
           import json
-          m=json.load(open('/tmp/lfp-preview-manifest.json',encoding='utf-8'))
-          assert m['id']==m['start_url']==m['scope']=='/pwa-preview/'
-          assert m['display']=='standalone'
-          assert {'192x192','512x512'}.issubset({i['sizes'] for i in m['icons']})
-          local=json.load(open('/tmp/lfp-local-manifest.json',encoding='utf-8'))
-          assert local['id']==local['start_url']==local['scope']=='/pwa-local/'
-          assert local['display']=='standalone'
-          assert {'192x192','512x512'}.issubset({i['sizes'] for i in local['icons']})
           gas=json.load(open('/tmp/lfp-gas-manifest.json',encoding='utf-8'))
           assert gas['id']==gas['start_url']==gas['scope']=='/pwa-gas/'
           assert gas['display']=='standalone'
@@ -260,5 +200,5 @@ jobs:
           assert root['id']==root['start_url']==root['scope']=='/'
           assert root['display']=='standalone'
           assert {'192x192','512x512'}.issubset({i['sizes'] for i in root['icons']})
-          print('PASS: main / is the standalone iframe PWA; original OAuth v9.68 preserved at /v968-direct/; independent apps intact')
+          print('PASS: PWA v9.69 at / and /pwa-gas/; original OAuth v9.68 preserved at /v968-direct/')
           PY
