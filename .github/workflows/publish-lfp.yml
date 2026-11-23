@@ -179,6 +179,53 @@ jobs:
           grep -q 'v9.68 · PWA тест' _site/pwa-preview/index.html
           grep -q 'v9.68 · локально' _site/pwa-local/index.html
 
+      - name: Promote secured Apps Script PWA to primary GitHub Pages URL
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Preserve the EXACT original public v9.68 OAuth interface at a dedicated fallback URL.
+          mkdir -p _site/v968-direct/app-parts
+          for file in index.html budget-app.js budget.css config.js pwa-bridge.js session-bridge.js sw.js manifest.webmanifest favicon-32.png icon-192.png icon-512.png icon-maskable-512.png apple-touch-icon.png apple-touch-icon-180.png google-check.html health.html; do
+            cp "_site/$file" "_site/v968-direct/$file"
+          done
+          cp _site/app-parts/*.txt _site/v968-direct/app-parts/
+          grep -q 'v9.68 Firebase' _site/v968-direct/index.html
+          test "$(find _site/v968-direct -type f | wc -l)" -eq 48
+
+          # No separate /pwa-gas/ URL is needed as the canonical launch:
+          # same tested iframe shell now opens at https://ndinar1982.github.io/
+          cp pwa-gas-src/index.html _site/index.html
+          cp pwa-gas-src/app.js _site/app.js
+          cp pwa-gas-src/sw.js _site/sw.js
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          m=json.loads(Path('pwa-gas-src/manifest.webmanifest').read_text(encoding='utf-8'))
+          m.update({'id':'/','start_url':'/','scope':'/','name':'ЛФП — Семейный бюджет'})
+          Path('_site/manifest.webmanifest').write_text(json.dumps(m,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          p=Path('_site/sw.js')
+          s=p.read_text(encoding='utf-8')
+          assert s.count("const CACHE='lfp-gas-iframe-shell-v1'")==1
+          s=s.replace("const CACHE='lfp-gas-iframe-shell-v1'","const CACHE='lfp-gas-iframe-root-v2'")
+          # Force previously installed v9.68 PWA to discard its OAuth shell cache.
+          s=s.replace("k.startsWith('lfp-gas-iframe-shell-')&&k!==CACHE",
+                      "(k.startsWith('lfp-shell-')||k.startsWith('lfp-gas-iframe-root-'))&&k!==CACHE")
+          assert "lfp-gas-iframe-root-v2" in s and "k.startsWith('lfp-shell-')" in s
+          p.write_text(s,encoding='utf-8')
+          # Root UI has no GIS/Google popup. Its iframe uses the original secure /exec Web App.
+          html=Path('_site/index.html').read_text(encoding='utf-8')
+          assert '<iframe id="budget-frame"' in html
+          assert '<link rel="manifest" href="./manifest.webmanifest?v=1">' in html
+          assert 'accounts.google.com/gsi/client' not in html
+          print('PASS: root now launches PWA GAS iframe; direct v9.68 backed up; icon and install scope pinned to /')
+          PY
+          node --check _site/app.js
+          node --check _site/sw.js
+          node pwa-gas-src/test-root.mjs _site
+          # Both paths use the identical iframe launcher; browser can retain saved /exec URL.
+          cmp _site/app.js _site/pwa-gas/app.js
+          cmp _site/index.html _site/pwa-gas/index.html
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
@@ -198,7 +245,7 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
 
-      - name: Verify live root budget and separate installable PWA preview
+      - name: Verify primary PWA GAS, v9.68 fallback and all separate previews
         shell: bash
         run: |
           set -euo pipefail
@@ -214,8 +261,11 @@ jobs:
               && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/pwa-local/manifest.webmanifest" -o /tmp/lfp-local-manifest.json \
               && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/pwa-gas/" -o /tmp/lfp-gas.html \
               && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/pwa-gas/manifest.webmanifest" -o /tmp/lfp-gas-manifest.json \
+              && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/manifest.webmanifest" -o /tmp/lfp-root-manifest.json \
+              && curl --fail --location --silent --show-error --retry 2 --retry-delay 2 --max-time 30 "$BASE/v968-direct/" -o /tmp/lfp-direct.html \
               && grep -q 'PWA v9.68' /tmp/lfp-health.html \
-              && grep -q 'v9.68 Firebase' /tmp/lfp-root.html \
+              && grep -q 'id="budget-frame"' /tmp/lfp-root.html \
+              && grep -q 'v9.68 Firebase' /tmp/lfp-direct.html \
               && grep -q 'v9.68 · PWA тест' /tmp/lfp-preview.html \
               && grep -q 'Проверка установки ЛФП' /tmp/lfp-preview-help.html \
               && grep -q 'v9.68 · локально' /tmp/lfp-local.html \
@@ -241,5 +291,9 @@ jobs:
           assert gas['id']==gas['start_url']==gas['scope']=='/pwa-gas/'
           assert gas['display']=='standalone'
           assert {'192x192','512x512'}.issubset({i['sizes'] for i in gas['icons']})
-          print('PASS: root v9.68 remains unchanged; standalone preview /pwa-preview/ has valid manifest/icons')
+          root=json.load(open('/tmp/lfp-root-manifest.json',encoding='utf-8'))
+          assert root['id']==root['start_url']==root['scope']=='/'
+          assert root['display']=='standalone'
+          assert {'192x192','512x512'}.issubset({i['sizes'] for i in root['icons']})
+          print('PASS: main / is the standalone iframe PWA; original OAuth v9.68 preserved at /v968-direct/; independent apps intact')
           PY
