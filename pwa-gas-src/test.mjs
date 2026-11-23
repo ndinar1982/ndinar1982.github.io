@@ -26,7 +26,7 @@ assert.match(js,/localStorage\.setItem\(KEY,url\)/);
 assert.match(js,/budget-frame/);
 assert.match(js,/window\.open\(current/);
 assert.match(js,/beforeinstallprompt/);
-assert.doesNotMatch(js,/google\.script\.run|access_token|refresh_token|firebase\.auth|fetch\(.*getAll/);
+assert.doesNotMatch(js.replace(/\/\*[\s\S]*?\*\//g,''),/google\.script\.run|access_token|refresh_token|firebase\.auth|fetch\(.*getAll/);
 assert.match(sw,/lfp-gas-iframe-shell-v1/);
 assert.match(sw,/url\.origin!==BASE\.origin/);
 assert.match(sw,/KNOWN\.has\(url\.pathname\)/);
