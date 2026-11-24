@@ -48,8 +48,8 @@ jobs:
               && curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 "$BASE/manifest.webmanifest" -o /tmp/lfp-root-manifest.json \
               && curl -fsSL --retry 2 --connect-timeout 10 --max-time 30 "$BASE/sw.js" -o /tmp/lfp-root-sw.js \
               && grep -Fq 'id="budget-frame"' /tmp/lfp-root.html \
-              && grep -Fq 'src="./app.js?v=973"' /tmp/lfp-root.html \
-              && grep -Fq "const CACHE='lfp-gas-iframe-root-v973'" /tmp/lfp-root-sw.js; then
+              && grep -Fq 'src="./app.js?v=974"' /tmp/lfp-root.html \
+              && grep -Fq "const CACHE='lfp-gas-iframe-root-v974'" /tmp/lfp-root-sw.js; then
               passed=1
               break
             fi

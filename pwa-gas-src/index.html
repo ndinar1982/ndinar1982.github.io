@@ -10,7 +10,7 @@
 <meta name="description" content="ЛФП · PWA — оболочка семейного бюджета в Google Apps Script">
 <meta name="robots" content="noindex,nofollow">
 <title>ЛФП — Семейный бюджет</title>
-<link rel="manifest" href="./manifest.webmanifest?v=973">
+<link rel="manifest" href="./manifest.webmanifest?v=974">
 <link rel="icon" type="image/png" href="./favicon-32.png">
 <link rel="apple-touch-icon" href="./apple-touch-icon-180.png">
 <style>
@@ -46,8 +46,9 @@ input:focus{outline:2px solid #86bdf2;outline-offset:1px}
 #setup-error{color:#af2a31;min-height:1em;font-size:13px;margin-top:9px}
 .small{font-size:12px;line-height:1.5;color:#5a6d7d}
 #menu-button{position:fixed;right:0;top:46%;z-index:4;width:23px;min-width:23px;height:43px;padding:0;border:1px solid #bcd5e9;border-right:0;border-radius:9px 0 0 9px;color:#fff;background:#246ca8;box-shadow:0 1px 10px #17385e30;font-size:19px;font-weight:700;opacity:.33;transition:opacity .2s ease,width .2s ease;-webkit-tap-highlight-color:transparent}
-#menu-button:hover,#menu-button:focus-visible,#menu-button[aria-expanded="true"]{opacity:1;width:29px}
-#menu-button[aria-expanded="true"]{background:#164d80}
+#menu-button[aria-expanded="false"]{opacity:.33;width:23px}
+#menu-button[aria-expanded="true"]{opacity:1;width:29px;background:#164d80}
+#menu-button:focus-visible{outline:2px solid #246ca8;outline-offset:2px}
 #menu{position:fixed;right:34px;top:clamp(80px,25vh,210px);bottom:auto;z-index:4;background:#fff;border:1px solid #d4e2f0;border-radius:13px;padding:15px;width:min(320px,calc(100vw - 46px));max-height:calc(100dvh - 100px);overflow:auto;box-shadow:0 10px 36px #13385b39}
 #menu h2{font-size:16px;margin:0 0 8px}
 #menu .btn{width:100%;margin-top:8px}
@@ -55,7 +56,7 @@ input:focus{outline:2px solid #86bdf2;outline-offset:1px}
 #state{font-size:12px;color:#5d6f83;line-height:1.4}
 @media(max-width:650px){.card{padding:20px}h1{font-size:21px}#frame-note{font-size:11px}}
 </style>
-<script src="./app.js?v=973" defer></script>
+<script src="./app.js?v=974" defer></script>
 </head>
 <body>
 <div id="app">

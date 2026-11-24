@@ -23,7 +23,7 @@ const expected=['.nojekyll',...shellFiles].sort()
 assert.deepEqual(listFiles(dir).sort(),expected,'Publish only the PWA shell and icons');
 assert.equal(app,fs.readFileSync(path.join(source,'app.js'),'utf8'));
 assert.match(root,/<iframe id="budget-frame"/);
-assert.match(root,/<link rel="manifest" href="\.\/manifest\.webmanifest\?v=973">/);
+assert.match(root,/<link rel="manifest" href="\.\/manifest\.webmanifest\?v=974">/);
 assert.match(app,/const KEY='lfp-pwa-gas-exec-v1'/);
 assert.match(app,/localStorage\.getItem\(KEY\)/);
 assert.match(app,/localStorage\.setItem\(KEY,url\)/);
@@ -40,7 +40,7 @@ for(const [prefix,scope] of [['','/']]){
     assert.ok(fs.existsSync(path.join(dir,prefix,icon.src)));
   }
 }
-assert.match(sw,/lfp-gas-iframe-root-v973/);
+assert.match(sw,/lfp-gas-iframe-root-v974/);
 assert.match(sw,/x\.startsWith\('lfp-shell-'\)/);
 assert.match(sw,/KNOWN\.has\(url\.pathname\)/);
 assert.doesNotMatch(sw,/fetch\(['"]https:\/\/script\.google\.com|access_token|refresh_token/);

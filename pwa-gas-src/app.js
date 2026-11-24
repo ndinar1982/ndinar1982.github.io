@@ -1,4 +1,4 @@
-/* ЛФП PWA v9.73 — shell for existing secured Apps Script.
+/* ЛФП PWA v9.74 — shell for existing secured Apps Script.
    No OAuth, tokens, financial data, or Google Sheets RPC here.
    The /exec URL is a device-only preference, not a credential. */
 (function(){
@@ -57,7 +57,7 @@ ui.frame.addEventListener('load',()=>{
   // Keep the cover briefly so a fast iframe load cannot flash a white page.
   releaseTimer=setTimeout(()=>{
     if(!ui.frameWrap.hidden)ui.loading.hidden=true;
-  },800);
+  },160);
 });
 function openDirect(){
   if(!current)return;
