@@ -18,11 +18,11 @@ function normalise(raw){
   let url;
   try{url=new URL(String(raw||'').trim())}catch(_){throw Error('Нужен полный адрес https://script.google.com/macros/s/…/exec')}
   if(url.protocol!=='https:'||url.hostname!=='script.google.com'
-     ||!/^\\/macros\\/s\\/[a-zA-Z0-9_-]{20,}\\/exec\\/?$/.test(url.pathname)
+     ||!/^\/macros\/s\/[a-zA-Z0-9_-]{20,}\/exec\/?$/.test(url.pathname)
      ||url.username||url.password){
     throw Error('Вставь адрес нового развёртывания «Веб-приложение», который заканчивается на /exec.');
   }
-  return 'https://script.google.com'+url.pathname.replace(/\\/$/,'');
+  return 'https://script.google.com'+url.pathname.replace(/\/$/,'');
 }
 function remember(url){
   try{localStorage.setItem(KEY,url);return true}catch(_){return false}
